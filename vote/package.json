@@ -1,0 +1,14 @@
+{
+  "name": "vote",
+  "version": "0.0.1",
+  "description": "A simple vote system",
+  "dependencies": {
+    "cookie": "^0.4.1",
+    "cookie-parser": "^1.4.5",
+    "express": "^4.17.1",
+    "mapbox": "^1.0.0-beta10",
+    "nodemailer": "^6.5.0",
+    "sqlite": "^4.0.19",
+    "sqlite3": "^5.0.2"
+  }
+}
