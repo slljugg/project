@@ -1,0 +1,57 @@
+extends layout.pug 
+
+block content 
+  h1= vote.title 
+  h3= vote.desc 
+
+  ul(data-voteid=vote.id)#option-list
+    each option in options 
+      li(data-optionid=option.id)= option.content
+        span
+
+  script(src="/socket.io/socket.io.js")
+  script.
+    
+
+    var optionlist = document.querySelector('#option-list')
+
+    function updataVote(voteupInfo) {
+      var counted = _.countBy(voteupInfo, 'optionid')
+      _.forEach(counted,(val,key)=> {
+        document.querySelector(`[data-optionid="${key}"]`).lastChild.textContent='/' + val + '票'
+      })
+    }
+
+    async function openGet() {
+      var voteupInfo = (await axios.get(`/voteup/${optionlist.dataset.voteid}/info`)).data
+      //console.log(voteupInfo)
+      if(voteupInfo == null) {
+        voteupInfo = []
+      }
+      var socket = io()
+
+      socket.emit('select room',location.pathname.split('/').pop())
+
+      socket.on('new vote', data => {
+        voteupInfo.push(data)
+        updataVote(voteupInfo)
+      })
+      updataVote(voteupInfo)
+    } 
+    openGet() 
+    
+    optionlist.addEventListener('click',async e => {
+      var optionid = e.target.dataset.optionid
+      var voteid = optionlist.dataset.voteid
+      var voteupInfo = (await axios.post('/voteup', {
+        optionid: optionid,
+        voteid: voteid
+      })).data
+      //- //console.log(voteupInfo)
+      //- var counted = _.countBy(voteupInfo, 'optionid')
+      //- //console.log(counted)
+      //- _.forEach(counted,(val,key)=> {
+      //- document.querySelector(`[data-optionid="${key}"]`).lastChild.textContent='/' + val + '票'
+      //- })
+      updataVote(voteupInfo)
+    })

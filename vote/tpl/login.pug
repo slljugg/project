@@ -1,0 +1,9 @@
+extends layout.pug 
+
+block content 
+  p 登陆成功,即将返回首页......
+
+  script.
+    setTimeout(() => {
+      location.href = '/'
+      },1000)
