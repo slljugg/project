@@ -45,8 +45,8 @@
       methods: {
         async submit() {
           var request = await axios.post('/create-vote',this.voteInfo)
+          console.log(request)
           var data = request.data
-          location.href='/vote-vue.html?id=' + data.id
         }
       }
     })

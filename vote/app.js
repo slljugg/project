@@ -62,6 +62,8 @@ app.use(function session(req, res, next) {
 app.use(express.static(__dirname + '/static'))  //文件查询中间键
 app.use('/upload',express.static(__dirname + '/upload'))
 
+
+
 app.use(express.json())  // 解析json请求中间键
 app.use(express.urlencoded({
   extended: true
@@ -127,6 +129,7 @@ app.route('/register')
   })
   .post(upload.single('avatar'), async (req, res, next) => {
     var userInfo = req.body
+    
     //var imgBuf = await fsp.readFile(req.file.path)
     jimp.read(req.file.path,(err,lenna) => {
       if(err) throw err
@@ -210,7 +213,7 @@ app.route('/register')
     var loginUser = req.body
     console.log(loginUser)
     if(loginUser.captcha != req.session.captcha) {
-      res.jsonp({code:-1,msg:'验证码错误'})
+      res.json({code:-1,msg:'验证码错误'})
       return
     }
     var user = await db.get('SELECT * FROM users WHERE name=? AND password=?', loginUser.name,md5(md5(loginUser.password)))
@@ -218,7 +221,7 @@ app.route('/register')
       res.cookie('userid', user.id, {
         signed: true
       })
-      res.jsonp({code:0})
+      res.json({code:0})
       // return   ajax 写法
       // res.end(`
       //   登陆成功,即将返回首页......
@@ -230,7 +233,7 @@ app.route('/register')
       // `)
       //res.render('login.pug',{})
     } else {
-      res.jsonp({code:-1,msg:'用户名或密码错误'})
+      res.json({code:-1,msg:'用户名或密码错误'})
       //return
       // res.end(`
       //   用户名或密码错误，<span id="count">3</span>秒后返回登陆界面请重新登陆......
@@ -296,7 +299,7 @@ app.route('/forget')
     }
     var token = Math.random().toString().slice(2)
     chengePasswordTokenMap[token] = email
-    var link = `http://localhost:8080/change-password/${token}`
+    var link = `http://localhost:8080/#/change-password/${token}`
 
     mailer.sendMail({
       from: '994192111@qq.com',
@@ -447,7 +450,6 @@ app.post('/voteup',async (req, res, next) => {
   })//投票后在这个页面触发new vote事件  
 
   var voteups = await db.all('SELECT * FROM voteups WHERE voteid=?',req.body.voteid)
-  console.log(voteups)
   res.json(voteups)
 })
 

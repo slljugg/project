@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <div id="app">
+    <router-view></router-view>
+  </div>
+  <script src="/assets/vue.js"></script>
+  <script src="/assets/vue-router.js"></script>
+  <script src="/assets/axios.min.js"></script>
+  <script src="/assets/lodash.min.js"></script>
+  <script>
+    var createVote = Vue.component('create-vote',{
+      template:`
+        <div>
+          <h2>创建投票</h2>
+          <div><input type="text" placeholder="标题" v-model="voteInfo.title"></div>
+          <div><input type="text" placeholder="问题描述" v-model="voteInfo.desc"></div>
+          <div v-for="(option,idx) in voteInfo.options">
+            <input type="text" :placeholder="'选择' + (idx + 1)" v-model="voteInfo.options[idx]" >
+            <button @click="voteInfo.options.splice(idx,1)">-</button>
+          </div>
+          <button @click="voteInfo.options.push('')">添加选项</button>
+          <div><input type="datetime-local" v-model="voteInfo.deadline"></div>
+          <div>
+            <label><input type="radio" value="1" v-model="voteInfo.anonymouse">实名</label>
+            <label><input type="radio" value="0" v-model="voteInfo.anonymouse">匿名</label>
+          </div>
+          <div>
+            <select v-model="voteInfo.singleSelection">
+              <option value="1">单选</option>
+              <option value="0">多选</option>
+            </select>
+          </div>
+          <button @click="submit">提交</button>
+        </div>
+      `,
+      data() {
+        return {
+          voteInfo: {
+          title:'',
+          desc:'',
+          options:['',''],
+          deadline:'',
+          anonymouse:'1',
+          singleSelection:'1'
+          }
+        }
+      },
+      methods: {
+        async submit() {
+          var request = await axios.post('http://localhost:8090/create-vote',this.voteInfo,{
+            withCredentials:true
+          })
+          console.log(request)
+          var data = request.data
+          console.log(data)
+          this.$router.push('/vote-show/' + data.id)
+          //this.$emit('new-vote', data.id)
+          //location.href='/vote-vue.html?id=' + data.id
+        }
+      }
+    })
+
+    var voteView = Vue.component('vote-view',{
+      props:['id'],
+      template:`
+        <div>
+          <h1>{{ vote.info.title }}</h1>
+          <h3>{{ vote.info.desc }}</h3>
+          <ul class="options">
+            <li style="cursor:pointer" @click="voteup(option.id)" v-for="option in vote.options">
+              {{ option.content }} - {{ summary[option.id].length }}票 
+              <div class="ratio" style="height:3px;background-color: red;" :style="{width:ratioSummary[option.id] * 100 + '%'}"></div>
+            </li>
+          </ul>
+        </div>
+      `,
+      async mounted() {
+        var id = this.$route.params.id
+        // var query = location.search.slice(1).split('&').reduce((obj,pair) => {
+        //   var [key,val] = pair.split('=')
+        //   obj[key] = val
+        //   return obj
+        // },{})
+        var request = await axios.get('http://localhost:8090/voteinfo/' + id)
+        var data = request.data
+        this.vote = data
+        this.vote.voteups=_.uniqBy(this.vote.voteups,'userid')
+
+
+        this.socket = io('http://localhost:8090')
+        this.socket.emit('select room',query.id)
+      
+        this.socket.on('new vote',data=> {
+          this.vote.voteups = this.vote.voteups.filter(it => it.userid != data.userid)
+          this.vote.voteups.push(data)
+          //this.vote.voteups=_.uniqBy(this.vote.voteups,'userid')
+        })
+      },
+    data() {
+      return {
+        vote:{
+        info:{},
+        options:[],
+        voteups:[],
+        },
+      }
+    },
+    methods: {
+      voteup(optionid) {
+        axios.post('http:localhost:8090/voteup',{
+          optionid,
+          voteid:this.vote.info.id
+        })
+      }
+    },
+    computed: {
+      summary() {
+        var obj = _.mapValues(_.keyBy(this.vote.options,'id'),()=>[])
+        return {
+          ...obj,
+          ..._.groupBy(this.vote.voteups,'optionid')
+        } 
+      },
+      ratioSummary() {
+        return _.mapValues(this.summary,(voteups,voteid) => {
+          if(voteups.length == 0) {
+            return 0
+          }
+          return voteups.length / this.vote.voteups.length
+        })
+      }
+    }
+  })
+  
+    var router = new VueRouter({
+    routes: [{
+      path: '/',
+      component: {
+        template:`
+          <div>
+            <router-link to="/create-vote">创建投票</router-link>
+          </div>
+        `
+      }
+    },{
+      path: '/create-vote',
+      component: createVote,
+    },{
+      path: '/vote-show/:id',
+      component: voteView,  
+    }]
+  })
+    var app = new Vue({
+      router: router,
+      el:'#app',
+      data: {
+      
+      }
+    })
+  </script>
+</body>
+</html>
